@@ -21,25 +21,25 @@ const queries = ref({
   ...route.query
 });
 
-async function loadLinks() {
+async function getLinks() {
   try {
-    const response = await axios.get("/links", {
-      params: queries.value
-    });
+    //@ts-expect-error
+    const qs = new URLSearchParams(queries.value).toString();
+    const { data: res } = await axios.get(`/links?${qs}`);
+    
+    data.value = res;
+    links.value = res.data;
+    
+    queries.value.page = res.meta.current_page;
 
-    data.value = response.data;
-    links.value = response.data.data;
-    
-    queries.value.page = response.data.meta.current_page;
-    
   } catch (error) {
-    console.error("Error loading links: ", error);
+    console.error("Error carregant enllaços:", error);
   }
 }
 
 watch(queries, async () => {
   await router.push({ query: queries.value }); 
-  loadLinks();
+  getLinks();
 }, { deep: true }); 
 
 watch(
@@ -55,7 +55,7 @@ watch(
 
 
 onMounted(() => {
-  loadLinks()
+  getLinks()
 })
 
 </script>
