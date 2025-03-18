@@ -6,6 +6,7 @@ import { ref, watch } from 'vue';
 import { TailwindPagination } from "laravel-vue-pagination";
 import { useRoute, useRouter } from "vue-router";
 import TableTh from "@/components/TableTh.vue";
+import { useLinks } from "~~/composables/useLinks";
 
 const route = useRoute();
 const router = useRouter();
@@ -14,54 +15,38 @@ definePageMeta({
   middleware: ["auth"],
 });
 
-const links = ref<Link[]>([]);
-const data = ref()
-
 const queries = ref({
   page: Number(route.query.page) || 1,
-  sort: route.query.sort || "",
-  "filter[full_link]": route.query["filter[full_link]"] || "",
+  sort: route.query.sort?.toString() || "",
+  "filter[full_link]": route.query["filter[full_link]"]?.toString() || "",
   ...route.query
 });
 
-async function getLinks() {
-  try {
-    const qs = new URLSearchParams(queries.value as Record<string,any>).toString();
-    const { data: res } = await axios.get(`/links?${qs}`);
-    
-    data.value = res;
-    links.value = res.data;
-    
-    if (res.meta) {
-      queries.value.page = res.meta.current_page;
-    }
+const { data, index: getLinks } = useLinks({ queries });
 
-  } catch (error) {
-    console.error("Error carregant enllaços:", error);
-  }
-}
 
-watch(queries, async () => {
-  await router.push({ query: queries.value }); 
+watch(queries, () => {
+  router.push({ query: queries.value });
   getLinks();
-}, { deep: true }); 
+}, { deep: true });
 
-watch(
-  () => route.query,
-  (newQuery) => {
-    queries.value = { 
-      page: Number(newQuery.page) || 1,
-      sort: newQuery.sort || "",
-      "filter[full_link]": newQuery["filter[full_link]"] || "",
-      ...newQuery 
-    };
+watch(() => route.query, (newQuery) => {
+  queries.value = { 
+    page: Number(newQuery.page) || 1,
+    sort: newQuery.sort?.toString() || "",
+    "filter[full_link]": newQuery["filter[full_link]"]?.toString() || "",
+    ...newQuery 
+  };
+});
+
+
+onMounted(async () => {
+  try {
+    await getLinks();
+  } catch (error) {
+    console.error("Error inicial:", error);
   }
-);
-
-
-onMounted(() => {
-  getLinks()
-})
+});
 
 </script>
 <template>
@@ -77,16 +62,16 @@ onMounted(() => {
       </div>
     </nav>
 
-    <div v-if="links.length > 0">
+    <div v-if="data?.data?.length > 0">
       <table class="table-fixed w-full">
         <thead>
           <tr>
-            <TableTh class="w-[35%]" name="full_link" modelValue="queries.sort">Full Link</TableTh>
-            <TableTh class="w-[35%]" name="short_link" modelValue="queries.sort">Short Link</TableTh>
-            <TableTh class="w-[10%]" name="views" modelValue="queries.sort">Views</TableTh>
-            <TableTh class="w-[10%]" name="edit" modelValue="queries.sort">Edit</TableTh>
-            <TableTh class="w-[10%]" name="trash" modelValue="queries.sort">Trash</TableTh>
-            <TableTh class="w-[6%] text-center" name="refresh" modelValue="queries.sort">
+            <TableTh class="w-[35%]" name="full_link" :model-value="queries.sort">Full Link</TableTh>
+            <TableTh class="w-[35%]" name="short_link" :model-value="queries.sort">Short Link</TableTh>
+            <TableTh class="w-[10%]" name="views" :model-value="queries.sort">Views</TableTh>
+            <TableTh class="w-[10%]" name="edit" :model-value="queries.sort">Edit</TableTh>
+            <TableTh class="w-[10%]" name="trash" :model-value="queries.sort">Trash</TableTh>
+            <TableTh class="w-[6%] text-center" name="refresh" :model-value="queries.sort">
               <button @click="getLinks()">
                 <IconRefresh class="w-[15px] relative top-[2px]"/>
               </button>
@@ -94,8 +79,8 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="link in links" :key="link.short_link">
-            <td>
+          <tr v-for="link in data?.data" :key="link.short_link">
+            <td :title="`created ${useTimeAgo(link.created_at).value}`">
               <a :href="link.full_link" target="_blank">
                 {{ link.full_link.replace(/^http(s?):\/\//, "") }}</a>
             </td>
