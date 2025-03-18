@@ -2,8 +2,10 @@
 import axios from "axios";
 import { Link } from "~~/types";
 import { ref, watch } from 'vue';
+//@ts-expect-error
 import { TailwindPagination } from "laravel-vue-pagination";
 import { useRoute, useRouter } from "vue-router";
+import TableTh from "@/components/TableTh.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -17,20 +19,22 @@ const data = ref()
 
 const queries = ref({
   page: Number(route.query.page) || 1,
+  sort: route.query.sort || "",
   "filter[full_link]": route.query["filter[full_link]"] || "",
   ...route.query
 });
 
 async function getLinks() {
   try {
-    //@ts-expect-error
-    const qs = new URLSearchParams(queries.value).toString();
+    const qs = new URLSearchParams(queries.value as Record<string,any>).toString();
     const { data: res } = await axios.get(`/links?${qs}`);
     
     data.value = res;
     links.value = res.data;
     
-    queries.value.page = res.meta.current_page;
+    if (res.meta) {
+      queries.value.page = res.meta.current_page;
+    }
 
   } catch (error) {
     console.error("Error carregant enllaços:", error);
@@ -47,6 +51,7 @@ watch(
   (newQuery) => {
     queries.value = { 
       page: Number(newQuery.page) || 1,
+      sort: newQuery.sort || "",
       "filter[full_link]": newQuery["filter[full_link]"] || "",
       ...newQuery 
     };
@@ -76,16 +81,16 @@ onMounted(() => {
       <table class="table-fixed w-full">
         <thead>
           <tr>
-            <th class="w-[35%]">Full Link</th>
-            <th class="w-[35%]">Short Link</th>
-            <th class="w-[10%]">Views</th>
-            <th class="w-[10%]">Edit</th>
-            <th class="w-[10%]">Trash</th>
-            <th class="w-[6%] text-center">
-              <button>
-                <IconRefresh />
+            <TableTh class="w-[35%]" name="full_link" modelValue="queries.sort">Full Link</TableTh>
+            <TableTh class="w-[35%]" name="short_link" modelValue="queries.sort">Short Link</TableTh>
+            <TableTh class="w-[10%]" name="views" modelValue="queries.sort">Views</TableTh>
+            <TableTh class="w-[10%]" name="edit" modelValue="queries.sort">Edit</TableTh>
+            <TableTh class="w-[10%]" name="trash" modelValue="queries.sort">Trash</TableTh>
+            <TableTh class="w-[6%] text-center" name="refresh" modelValue="queries.sort">
+              <button @click="getLinks">
+                <IconRefresh class="w-[15px] relative top-[2px]"/>
               </button>
-            </th>
+            </TableTh>
           </tr>
         </thead>
         <tbody>
