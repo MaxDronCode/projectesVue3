@@ -87,7 +87,7 @@ onMounted(() => {
             <TableTh class="w-[10%]" name="edit" modelValue="queries.sort">Edit</TableTh>
             <TableTh class="w-[10%]" name="trash" modelValue="queries.sort">Trash</TableTh>
             <TableTh class="w-[6%] text-center" name="refresh" modelValue="queries.sort">
-              <button @click="getLinks">
+              <button @click="getLinks()">
                 <IconRefresh class="w-[15px] relative top-[2px]"/>
               </button>
             </TableTh>
