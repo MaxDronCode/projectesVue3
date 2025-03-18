@@ -15,32 +15,48 @@ definePageMeta({
 
 const links = ref<Link[]>([]);
 const data = ref()
-const currentPage = ref(1);
+const page = ref(Number(route.query.page) || 1)
+const pagination = ref({
+  totalPages: 1,
+  perPage: 5
+})
 
 async function loadLinks() {
   try {
     const response = await axios.get("/links", {
       params: {
-        page: currentPage.value,
+        page: page.value,
+        perPage: pagination.value.perPage
       }
     })
 
     data.value = response.data
     links.value = response.data.data
+    pagination.value = {
+      totalPages: response.data.last_page,
+      perPage: response.data.per_page
+    }
+    if (page.value !== response.data.current_page) {
+      page.value = response.data.current_page
+    }
 
   } catch (error) {
     console.error("Error loading links: ", error)
   }
 }
 
-function handlePageChange(newPage: number) {
-  currentPage.value = newPage
-  loadLinks()
-}
-
-watch(currentPage, (newPage) => {
+watch(page, (newPage) => {
+  router.replace({ query: { ...route.query, page: newPage } })
   loadLinks()
 })
+
+watch(
+  () => route.query.page,
+  (newPage) => {
+    const parsedPage = Number(newPage) || 1;
+    if (parsedPage !== page.value) page.value = parsedPage;
+  }
+);
 
 onMounted(() => {
   loadLinks()
@@ -106,7 +122,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
-      <TailwindPagination :data="data" @pagination-change-page="handlePageChange"/>
+      <TailwindPagination :data="data" @pagination-change-page="page = $event"/>
       <div class="mt-5 flex justify-center gap-2">
 
       </div>
