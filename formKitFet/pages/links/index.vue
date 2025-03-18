@@ -8,56 +8,51 @@ import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 
-// axios.get("/links");
 definePageMeta({
   middleware: ["auth"],
 });
 
 const links = ref<Link[]>([]);
 const data = ref()
-const page = ref(Number(route.query.page) || 1)
-const searchQuery = ref(route.query["filter[full_link]"] || "")
+
+const queries = ref({
+  page: Number(route.query.page) || 1,
+  "filter[full_link]": route.query["filter[full_link]"] || "",
+  ...route.query
+});
 
 async function loadLinks() {
   try {
     const response = await axios.get("/links", {
-      params: {
-        page: page.value,
-        "filter[full_link]": searchQuery.value
-      }
-    })
+      params: queries.value
+    });
 
-    data.value = response.data
-    links.value = response.data.data
-
-    if (page.value !== response.data.meta.current_page) {
-      page.value = response.data.meta.current_page
-    }
-
+    data.value = response.data;
+    links.value = response.data.data;
+    
+    queries.value.page = response.data.meta.current_page;
+    
   } catch (error) {
-    console.error("Error loading links: ", error)
+    console.error("Error loading links: ", error);
   }
 }
 
-watch(searchQuery, (newQuery) => {
-  page.value = 1; 
-  router.replace({ 
-    query: { 
-      ...route.query, 
-      page: 1,
-      "filter[full_link]": newQuery 
-    } 
-  });
-});
+watch(queries, async () => {
+  await router.push({ query: queries.value }); 
+  loadLinks();
+}, { deep: true }); 
 
 watch(
   () => route.query,
   (newQuery) => {
-    page.value = Number(newQuery.page) || 1;
-    searchQuery.value = newQuery["filter[full_link]"] || "";
-    loadLinks();
+    queries.value = { 
+      page: Number(newQuery.page) || 1,
+      "filter[full_link]": newQuery["filter[full_link]"] || "",
+      ...newQuery 
+    };
   }
 );
+
 
 onMounted(() => {
   loadLinks()
@@ -70,7 +65,7 @@ onMounted(() => {
       <h1 class="mb-0">My Links</h1>
       <div class="flex items-center">
         <SearchInput 
-        v-model="searchQuery" placeholder="Search my URL..." />
+        v-model="queries['filter[full_link]']" placeholder="Search my URL..." />
         <NuxtLink to="/links/create" class="ml-4">
           <IconPlusCircle class="inline" /> Create New
         </NuxtLink>
@@ -124,7 +119,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
-      <TailwindPagination :data="data" @pagination-change-page="page = $event"/>
+      <TailwindPagination :data="data" @pagination-change-page="queries.page = $event"/>
       <div class="mt-5 flex justify-center gap-2">
 
       </div>
