@@ -8,7 +8,7 @@ import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 
-axios.get("/links");
+// axios.get("/links");
 definePageMeta({
   middleware: ["auth"],
 });
@@ -16,28 +16,22 @@ definePageMeta({
 const links = ref<Link[]>([]);
 const data = ref()
 const page = ref(Number(route.query.page) || 1)
-const pagination = ref({
-  totalPages: 1,
-  perPage: 5
-})
+const searchQuery = ref(route.query["filter[full_link]"] || "")
 
 async function loadLinks() {
   try {
     const response = await axios.get("/links", {
       params: {
         page: page.value,
-        perPage: pagination.value.perPage
+        "filter[full_link]": searchQuery.value
       }
     })
 
     data.value = response.data
     links.value = response.data.data
-    pagination.value = {
-      totalPages: response.data.last_page,
-      perPage: response.data.per_page
-    }
-    if (page.value !== response.data.current_page) {
-      page.value = response.data.current_page
+
+    if (page.value !== response.data.meta.current_page) {
+      page.value = response.data.meta.current_page
     }
 
   } catch (error) {
@@ -45,16 +39,23 @@ async function loadLinks() {
   }
 }
 
-watch(page, (newPage) => {
-  router.replace({ query: { ...route.query, page: newPage } })
-  loadLinks()
-})
+watch(searchQuery, (newQuery) => {
+  page.value = 1; 
+  router.replace({ 
+    query: { 
+      ...route.query, 
+      page: 1,
+      "filter[full_link]": newQuery 
+    } 
+  });
+});
 
 watch(
-  () => route.query.page,
-  (newPage) => {
-    const parsedPage = Number(newPage) || 1;
-    if (parsedPage !== page.value) page.value = parsedPage;
+  () => route.query,
+  (newQuery) => {
+    page.value = Number(newQuery.page) || 1;
+    searchQuery.value = newQuery["filter[full_link]"] || "";
+    loadLinks();
   }
 );
 
@@ -68,7 +69,8 @@ onMounted(() => {
     <nav class="flex justify-between mb-4 items-center">
       <h1 class="mb-0">My Links</h1>
       <div class="flex items-center">
-        <SearchInput modelValue="" />
+        <SearchInput 
+        v-model="searchQuery" placeholder="Search my URL..." />
         <NuxtLink to="/links/create" class="ml-4">
           <IconPlusCircle class="inline" /> Create New
         </NuxtLink>
