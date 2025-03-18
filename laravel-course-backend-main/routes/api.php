@@ -34,3 +34,5 @@ Route::post('/links', [Links::class, 'store'])->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('links', Links::class);
 });
+
+Route::put('/links/{link}', [Links::class, 'update']);

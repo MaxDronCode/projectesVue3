@@ -20,7 +20,14 @@ function adapter(link: RawLink): Link {
 export const useLinks = ({ queries = ref({})}: UseLinksOptions = {}) => {
     const slug = "links";
     const paginatedData = ref<PaginatedResponse<Link>>();
-    const item = ref<Link>();
+    const item = ref<Link>({
+        id: 0,
+        short_link: "",
+        full_link: "",
+        views: 0,
+        created_at: new Date(),
+        updated_at: new Date()
+    });
 
     async function index(qs?: Record<string, string | number>) {
         qs = { ...queries.value, ...qs };
