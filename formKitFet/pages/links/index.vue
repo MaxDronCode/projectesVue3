@@ -7,6 +7,7 @@ import { TailwindPagination } from "laravel-vue-pagination";
 import { useRoute, useRouter } from "vue-router";
 import TableTh from "@/components/TableTh.vue";
 import { useLinks } from "~~/composables/useLinks";
+import { handleError } from "vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,8 +23,16 @@ const queries = ref({
   ...route.query
 });
 
-const { data, index: getLinks } = useLinks({ queries });
+const { data, index: getLinks, destroy } = useLinks({ queries });
 
+async function handleDelete(id: number) {
+  try {
+    await destroy(id);
+    await getLinks();
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 watch(queries, () => {
   router.push({ query: queries.value });
@@ -101,7 +110,7 @@ onMounted(async () => {
               </NuxtLink>
             </td>
             <td>
-              <button>
+              <button @click="handleDelete(link.id)">
                 <IconTrash />
               </button>
             </td>

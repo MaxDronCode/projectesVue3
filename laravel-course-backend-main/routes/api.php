@@ -36,3 +36,5 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::put('/links/{link}', [Links::class, 'update']);
+
+Route::delete('/links/{link}', [Links::class, 'destroy']);
